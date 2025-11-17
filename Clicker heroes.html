@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Clicker Heroes Clone</title>
+<style>
+body { font-family: sans-serif; background: #222; color: #eee; margin:0; padding:0;}
+button { margin:3px; padding:5px 10px; }
+#heroes, #monsters { margin:10px; }
+.floatDmg { position:absolute; font-weight:bold; color:#FFD700; font-size:16px; pointer-events:none; transition:all 0.5s linear;}
+#info { margin:10px;}
+</style>
+</head>
+<body>
+
+<h1>Clicker Heroes Clone</h1>
+<div id="info">
+Gold: <span id="gold">0</span> | DPS: <span id="dps">0</span> | Stage: <span id="stage">1</span> | Monsters: <span id="monstersBeaten">0/10</span>
+</div>
+<div id="heroes"></div>
+<div id="monsters"></div>
+<div id="floatLayer"></div>
+
+<script>
+// ===== HERO DATA =====
+const HERO_STATS = [
+  { name: "Cid", baseCost: 5, baseDPS: 0 },
+  { name: "Treebeast", baseCost: 50, baseDPS: 5 },
+  { name: "Ivan", baseCost: 250, baseDPS: 22 },
+  { name: "Brittany", baseCost: 1000, baseDPS: 74 },
+  { name: "Fisherman", baseCost: 4000, baseDPS: 245 },
+  { name: "Betty Clicker", baseCost: 20000, baseDPS: 976 },
+  { name: "Masked Samurai", baseCost: 100000, baseDPS: 3725 },
+  { name: "Leon", baseCost: 400000, baseDPS: 10859 },
+  { name: "Forest Seer", baseCost: 2500000, baseDPS: 47143 },
+  { name: "Alexa", baseCost: 15000000, baseDPS: 186900 },
+  { name: "Natalia", baseCost: 100000000, baseDPS: 782000 },
+  { name: "Mercedes", baseCost: 800000000, baseDPS: 3721000 },
+  { name: "Bobby", baseCost: 6500000000, baseDPS: 17010000 },
+  { name: "Broyle Lindeoven", baseCost: 50000000000, baseDPS: 69480000 },
+  { name: "Abaddon", baseCost: 3.2e14, baseDPS: 1.31e11 },
+  { name: "Ma Zhu", baseCost: 2.7e15, baseDPS: 8.147e11 },
+  { name: "Beastlord", baseCost: 3e17, baseDPS: 4.914e13 },
+  { name: "Athena", baseCost: 9e18, baseDPS: 1.086e15 },
+  { name: "Dread Knight", baseCost: 1e40, baseDPS: 1.31e32 },
+  { name: "Atlas", baseCost: 1e55, baseDPS: 1e34 },
+  { name: "Terra", baseCost: 1e70, baseDPS: 5e60 },
+  { name: "Phthalo", baseCost: 1e85, baseDPS: 5.241e70 },
+];
+
+// Fill to 54 heroes, then add Kerwill
+let heroes = HERO_STATS.map(h => ({...h, level:0, cost:h.baseCost}));
+while(heroes.length < 54){
+  let prev = heroes[heroes.length-1];
+  heroes.push({name:"Hero"+(heroes.length+1), level:0, baseCost:prev.baseCost*10, cost:prev.baseCost*10, baseDPS:prev.baseDPS*10});
+}
+heroes.push({name:"Kerwill, the drunken baller", level:0, baseCost:heroes[heroes.length-1].baseCost*10, cost:heroes[heroes.length-1].cost*10, baseDPS:heroes[heroes.length-1].baseDPS*2});
+
+// ===== GAME STATE =====
+let gold=0, dps=0, stage=1, monstersBeaten=0;
+let monsterCount = 10;
+let monsterHealth = 10;
+
+// ===== UTILITY =====
+function formatNumber(n){
+  if(n>=1e12) return (n/1e12).toFixed(2)+"T";
+  if(n>=1e9) return (n/1e9).toFixed(2)+"B";
+  if(n>=1e6) return (n/1e6).toFixed(2)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(2)+"K";
+  return Math.floor(n);
+}
+
+// ===== HERO UI =====
+const heroDiv=document.getElementById("heroes");
+function renderHeroes(){
+  heroDiv.innerHTML="";
+  heroes.forEach((h,i)=>{
+    const btn=document.createElement("button");
+    btn.textContent=`${h.name} Lvl:${h.level} Cost:${formatNumber(h.cost)}`;
+    btn.onclick=()=>{
+      if(gold>=h.cost){
+        gold-=h.cost;
+        h.level++;
+        h.cost=Math.floor(h.baseCost*Math.pow(1.07,h.level));
+        recalcDPS();
+        updateUI();
+      }
+    };
+    heroDiv.appendChild(btn);
+  });
+}
+
+// ===== DPS CALC =====
+function recalcDPS(){
+  dps = heroes.reduce((sum,h)=>sum+h.level*h.baseDPS,0);
+}
+
+// ===== MONSTERS =====
+function spawnMonster(){
+  monstersBeaten=0;
+  monsterCount=(stage>=500 && stage<=999)?8:10;
+  monsterHealth = 10 * Math.pow(1.15,stage-1);
+  updateUI();
+}
+
+// ===== UI UPDATE =====
+function updateUI(){
+  document.getElementById("gold").textContent=formatNumber(gold);
+  document.getElementById("dps").textContent=formatNumber(dps);
+  document.getElementById("stage").textContent=stage;
+  document.getElementById("monstersBeaten").textContent=`${monstersBeaten}/${monsterCount}`;
+  renderHeroes();
+}
+
+// ===== GAME LOOP =====
+setInterval(()=>{
+  // DPS applied to monsters
+  monsterHealth-=dps*0.1;
+  if(monsterHealth<=0){
+    monstersBeaten++;
+    gold+=stage*10; // boss bonus scaling
+    if(monstersBeaten>=monsterCount){
+      stage++;
+      spawnMonster();
+    }else{
+      monsterHealth=10 * Math.pow(1.15,stage-1);
+    }
+    updateUI();
+  }
+},100);
+
+// INIT
+spawnMonster();
+updateUI();
+
+</script>
+</body>
+</html>
